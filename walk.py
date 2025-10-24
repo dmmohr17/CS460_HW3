@@ -1,4 +1,3 @@
-// https://github.com/tuw-robotics/stage_ros2
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Twist
