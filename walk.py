@@ -227,7 +227,7 @@ class Walk(Node):
         else:
             # modified for hw3 - testing
             if(self.front_distance < 0.25):
-                twist.angular.z = 0.5 * heading_error / heading_error_check
+                twist.angular.z = 0.2 * heading_error / heading_error_check
                 twist.linear.x = 0.0
             elif(self.left_distance < 0.2 and self.right_distance < 0.2 and self.front_distance < 0.2):
                 # hw3: back up slowly if you are in a corner
@@ -236,10 +236,10 @@ class Walk(Node):
             elif(self.left_distance < 0.2 and self.right_distance < 0.2): 
                 # hw3: go straight slowly if clear ahead and too tight on sides
                 twist.angular.z = 0.0
-                twist.linear.x = 0.3
+                twist.linear.x = 0.2
             else:
-                twist.angular.z = 0.5 * heading_error / heading_error_check
-                twist.linear.x = 0.5
+                twist.angular.z = 0.2 * heading_error / heading_error_check
+                twist.linear.x = 0.2
 
         if dist < self.map_resolution * 0.8:
             self.path.pop(0)
