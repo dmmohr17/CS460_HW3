@@ -194,6 +194,12 @@ class Walk(Node):
         goal = self.world_to_grid(self.goal_x, self.goal_y)
         twist = Twist()
 
+        # testing for hw3 - dynamic clearance
+        if self.front_distance < 0.15:
+            self.safe_clearance = 0.02
+        else:
+            self.safe_clearance = 0.05
+
         # Track the current stats of the map
         free_count = sum(row.count(2) for row in self.arr)
         wall_count = sum(row.count(1) for row in self.arr)
@@ -257,7 +263,8 @@ class Walk(Node):
         from heapq import heappush, heappop
         grid = self.arr
         dim = self.grid_dim
-        clearance = max(1, int(self.safe_clearance / self.map_resolution) - 1)
+        #clearance = max(1, int(self.safe_clearance / self.map_resolution) - 1)
+        clearance = int(math.ceil(self.safe_clearance / self.map_resolution)) # testing hw3
 
         def in_bounds(n):
             return 0 <= n[0] < dim and 0 <= n[1] < dim
