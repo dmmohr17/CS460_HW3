@@ -192,6 +192,7 @@ class Walk(Node):
 
         start = self.world_to_grid(self.x, self.y)
         goal = self.world_to_grid(self.goal_x, self.goal_y)
+        twist = Twist()
 
         # Track the current stats of the map
         free_count = sum(row.count(2) for row in self.arr)
@@ -221,7 +222,6 @@ class Walk(Node):
         angle_to_target = math.degrees(math.atan2(dy, dx))
         heading_error = (angle_to_target - self.degrees + 540) % 360 - 180
 
-        twist = Twist()
         heading_error_check = 15 # added variable for hw3
         if abs(heading_error) > heading_error_check:
             twist.angular.z = 0.8 * (heading_error / abs(heading_error))
