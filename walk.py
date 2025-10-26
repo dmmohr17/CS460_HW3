@@ -220,17 +220,26 @@ class Walk(Node):
         heading_error = (angle_to_target - self.degrees + 540) % 360 - 180
 
         twist = Twist()
-        if abs(heading_error) > 10:
-            twist.angular.z = 1.5 * (heading_error / abs(heading_error))
+        heading_error_check = 15 # added variable for hw3
+        if abs(heading_error) > heading_error_check:
+            twist.angular.z = 0.8 * (heading_error / abs(heading_error))
             twist.linear.x = 0.0
         else:
             # modified for hw3 - testing
-            if(self.front_distance < 0.1):
-                twist.angular.z = 1.0 * heading_error / 10.0
+            if(self.front_distance < 0.25):
+                twist.angular.z = 0.5 * heading_error / heading_error_check
                 twist.linear.x = 0.0
+            elif(self.left_distance < 0.15 and self.right_distance < 0.15 and self.front_distance < 0.15):
+                # hw3: back up slowly if you are in a corner
+                twist.angular.z = 0.0
+                twist.linear.x = -0.1
+            elif(self.left_distance < 0.15 and self.right_distance < 0.15): 
+                # hw3: go straight if clear ahead and too tight on sides
+                twist.angular.z = 0.0
+                twist.linear.x = 0.5
             else:
-                twist.angular.z = 1.0 * heading_error / 10.0
-                twist.linear.x = 1.6
+                twist.angular.z = 0.5 * heading_error / heading_error_check
+                twist.linear.x = 0.5
 
         if dist < self.map_resolution * 0.8:
             self.path.pop(0)
