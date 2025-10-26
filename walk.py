@@ -26,7 +26,7 @@ class Walk(Node):
         self.startPos = [0.0, 0.0]
         self.startTime = time.time()
 
-        self.map_resolution = 0.1       # resolution per grid cell
+        self.map_resolution = 0.05       # resolution per grid cell
         self.map_size = 16.0              # map is 16x16
         self.grid_dim = int(self.map_size / self.map_resolution) # internal grid 
         self.arr = [[0 for _ in range(self.grid_dim)] for _ in range(self.grid_dim)]
@@ -35,7 +35,7 @@ class Walk(Node):
         self.last_plan_time = 0.0
         self.goal_x = None
         self.goal_y = None
-        self.safe_clearance = 0.05
+        self.safe_clearance = 0.03
 
         self.visited = [[False] * len(self.arr) for _ in range(len(self.arr))]
         self.last_goal_update = time.time()
@@ -207,7 +207,7 @@ class Walk(Node):
                 # self.get_logger().info("No path found yet.")
                 print("Empty twist #1")
                 self.cmd_pub.publish(twist)
-                print(start + " " + goal)
+                print(start, " ", goal)
                 return
 
         if not self.path:
