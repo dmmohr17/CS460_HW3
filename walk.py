@@ -234,9 +234,9 @@ class Walk(Node):
                 twist.angular.z = 0.0
                 twist.linear.x = -0.1
             elif(self.left_distance < 0.15 and self.right_distance < 0.15): 
-                # hw3: go straight if clear ahead and too tight on sides
+                # hw3: go straight slowly if clear ahead and too tight on sides
                 twist.angular.z = 0.0
-                twist.linear.x = 0.5
+                twist.linear.x = 0.3
             else:
                 twist.angular.z = 0.5 * heading_error / heading_error_check
                 twist.linear.x = 0.5
