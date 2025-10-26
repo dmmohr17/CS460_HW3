@@ -26,7 +26,7 @@ class Walk(Node):
         self.startPos = [0.0, 0.0]
         self.startTime = time.time()
 
-        self.map_resolution = 0.25        # resolution per grid cell
+        self.map_resolution = 0.1       # resolution per grid cell
         self.map_size = 16.0              # map is 16x16
         self.grid_dim = int(self.map_size / self.map_resolution) # internal grid 
         self.arr = [[0 for _ in range(self.grid_dim)] for _ in range(self.grid_dim)]
@@ -35,7 +35,7 @@ class Walk(Node):
         self.last_plan_time = 0.0
         self.goal_x = None
         self.goal_y = None
-        self.safe_clearance = 0.1
+        self.safe_clearance = 0.05
 
         self.visited = [[False] * len(self.arr) for _ in range(len(self.arr))]
         self.last_goal_update = time.time()
@@ -77,9 +77,16 @@ class Walk(Node):
     def sensor_callback(self, msg: LaserScan):
         # Update occupancy grid from sensor data
         self.whisker_array = msg.ranges
+        n = len(self.whisker_array) # added for hw3
         angle_inc = msg.angle_increment
         angle_min = msg.angle_min
         max_range = msg.range_max if msg.range_max > 0 else 5.0  # fallback if unspecified
+
+        # added for hw3 - estimates closest obstacles in front, left, and right
+        if n > 0:
+            self.front_distance = min(self.whisker_array[n//2 - 5 : n//2 + 5])
+            self.left_distance = min(self.whisker_array[:15])
+            self.right_distance = min(self.whisker_array[-15:])
 
         robot_gx, robot_gy = self.world_to_grid(self.x, self.y)
 
@@ -214,11 +221,16 @@ class Walk(Node):
 
         twist = Twist()
         if abs(heading_error) > 10:
-            twist.angular.z = 3.2 * (heading_error / abs(heading_error))
+            twist.angular.z = 1.5 * (heading_error / abs(heading_error))
             twist.linear.x = 0.0
         else:
-            twist.angular.z = 1.0 * heading_error / 10.0
-            twist.linear.x = 1.6
+            # modified for hw3 - testing
+            if(self.front_distance < 0.1):
+                twist.angular.z = 1.0 * heading_error / 10.0
+                twist.linear.x = 0.0
+            else:
+                twist.angular.z = 1.0 * heading_error / 10.0
+                twist.linear.x = 1.6
 
         if dist < self.map_resolution * 0.8:
             self.path.pop(0)
