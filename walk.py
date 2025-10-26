@@ -207,6 +207,7 @@ class Walk(Node):
                 # self.get_logger().info("No path found yet.")
                 print("Empty twist #1")
                 self.cmd_pub.publish(twist)
+                print(start + " " + goal)
                 return
 
         if not self.path:
