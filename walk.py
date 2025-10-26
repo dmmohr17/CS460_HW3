@@ -92,8 +92,8 @@ class Walk(Node):
 
         # Mark a small free circle around the robot
         # This checks safety since the robot is larger than a dot
-        for dx in range(-2, 3):
-            for dy in range(-2, 3):
+        for dx in range(-5, 5):
+            for dy in range(-5, 5):
                 gx = robot_gx + dx
                 gy = robot_gy + dy
                 if 0 <= gx < self.grid_dim and 0 <= gy < self.grid_dim:
