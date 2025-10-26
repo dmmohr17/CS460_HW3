@@ -205,10 +205,12 @@ class Walk(Node):
             self.last_plan_time = time.time()
             if not self.path:
                 # self.get_logger().info("No path found yet.")
+                print("Empty twist #1")
                 self.cmd_pub.publish(twist)
                 return
 
         if not self.path:
+            print("Empty twist #2")
             self.cmd_pub.publish(twist)
             return
 
