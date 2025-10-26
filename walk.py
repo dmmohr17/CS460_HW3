@@ -226,7 +226,7 @@ class Walk(Node):
             twist.linear.x = 0.0
         else:
             # modified for hw3 - testing
-            if(self.front_distance < 0.25):
+            if(self.front_distance < 0.2):
                 twist.angular.z = 0.2 * heading_error / heading_error_check
                 twist.linear.x = 0.0
             elif(self.left_distance < 0.2 and self.right_distance < 0.2 and self.front_distance < 0.2):
