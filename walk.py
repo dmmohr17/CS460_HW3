@@ -136,7 +136,7 @@ class Walk(Node):
         z = msg.pose.pose.orientation.z
         theta = (2.0 * math.atan2(z, w))
         degrees = math.degrees(theta)
-        if degrees < 0: # Loop over for negative degrees
+        while degrees < 0: # Loop over for negative degrees
             degrees += 360
         self.degrees = degrees
 
