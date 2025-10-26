@@ -14,7 +14,7 @@ class Walk(Node):
         self.cmd_pub = self.create_publisher(Twist, '/cmd_vel', 10)
         self.subscription_scan = self.create_subscription(LaserScan, '/base_scan', self.sensor_callback, 20)
         self.subscription_odom = self.create_subscription(Odometry, '/ground_truth', self.listener_callback, 20)
-        self.timer = self.create_timer(0.01, self.timer_callback)
+        self.timer = self.create_timer(0.01, self.timer_callback) # TRY - try changing to 0.05
 
         # Robot position and heading
         self.x = 0.0
@@ -204,9 +204,11 @@ class Walk(Node):
             self.last_plan_time = time.time()
             if not self.path:
                 # self.get_logger().info("No path found yet.")
+                self.cmd_pub.publish(twist)
                 return
 
         if not self.path:
+            self.cmd_pub.publish(twist)
             return
 
         next_cell = self.path[0]
