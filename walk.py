@@ -30,11 +30,13 @@ class Walk(Node):
         self.right_distance = float('inf')
 
         # may want to tune these values if wall crashing occurs
-        self.danger_zone = 0.3
-        self.follow_distance = 0.6
+        self.danger_zone = 0.5
+        self.follow_distance = 1.0
         self.wall_found = False
         self.start = True
         self.start_helper = 0.0
+        self.tick = 0
+        self.ticks = "temp"
 
         self.move_cmd = Twist()
 
@@ -54,12 +56,14 @@ class Walk(Node):
     # Timer callback
     def timer_callback(self):
         twist = Twist()
+        self.tick += 1
+        self.ticks = str(self.tick)
 
         if(self.start == True):
             # at init, need to find a wall
             if(self.wall_found == False):
                 if(self.front_distance == self.left_distance and self.front_distance == self.right_distance):
-                    self.start_helper += 1.0
+                    self.start_helper += 1
                     if(self.start_helper >= 20):
                         # taken too long to find a wall, drive until one is found
                         twist.angular.z = 0.2
@@ -102,32 +106,41 @@ class Walk(Node):
                     # right is closest, turn right to eventually face it
                     twist.angular.z = -0.2
                     twist.linear.x = 0.0
-        elif(self.wall_found == True and self.right_distance > self.follow_distance + 0.5):
-            # if robot was following a wall and the wall disappears, turn right until found again - INCOMPLETE
-            twist.angular.z = -0.1
+        elif(self.front_distance < self.danger_zone):
+            # something is dangerously close to front
+            # work here !
+        elif(self.right_distance > self.follow_distance + 0.3):
+            # if robot was following a wall and the wall disappears, turn right until found again
+            print("Wall lost, turning right and searching" + self.ticks)
+            twist.angular.z = -0.5
             twist.linear.x = 0.1
-        elif(self.wall_found == True and self.front_distance < self.follow_distance):
+        elif(self.front_distance < self.danger_zone and self.right_distance < self.follow_distance and self.left_distance > self.follow_distance):
             # if robot is following a wall and a wall is in front, turn left slowly
+            print("Wall in front and on right, turn left" + self.ticks)
             twist.angular.z = 0.2
             twist.linear.x = 0.0
         else:
             # follow the wall - but check for odd cases
             if(self.right_distance < self.danger_zone):
-                if(self.left_distance < self.danger_zone and self.front_distance > self.danger_zone):
+                if(self.left_distance < self.danger_zone and self.front_distance > self.follow_distance):
                     # if in a tight corridor but there is space ahead, just go straight
+                    print("Tight on both sides, going straight" + self.ticks)
                     twist.angular.z = 0.0
                     twist.linear.x = 0.2
                 else:
                     # turn left slightly
-                    twist.angular.z = 0.1 # turn left
-                    twist.linear.x = 0.2
+                    print("Right in danger zone, block ahead" + self.ticks)
+                    twist.angular.z = 0.2 # turn left
+                    twist.linear.x = 0.0
             elif(self.right_distance > self.follow_distance): 
                 # if the robot is not parallel with the wall, turn closer to it
+                print("Robot misaligned with wall, turn right" + self.ticks)
                 twist.angular.z = -0.1 # rotate right slightly to get parallel with wall
                 twist.linear.x = 0.2
             else:
-                twist.angular.z = 0.0
-                twist.linear.x = 0.2
+            	print("Perfect alignment, going straight" + self.ticks)
+            	twist.angular.z = 0.0
+            	twist.linear.x = 0.2
 
         self.cmd_pub.publish(twist)
 
