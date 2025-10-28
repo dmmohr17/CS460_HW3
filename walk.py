@@ -6,7 +6,6 @@ import time
 import math
 from collections import deque
 
-# no ground truth - but you can use local estimate
 # wall following is a hack
 # step 1 - scan for a wall - look at architecture reactive control slide - define danger/safe zones
 # need to define left, right, and front of robot
@@ -18,9 +17,13 @@ from collections import deque
 # Will need to figure out how to map PID to linear & angular
 
 # Derek's notes
-# note that we currently have issues with losing the wall on the right,
-# ...I have two different blocks, one that was made to turn right aggressively if the wall is lost,
-# ...and one that is meant to turn only slightly if it becomes just barely misaligned
+# Turning right at a corner has issues when the wall is extremely small (like a line)
+# Issues with obstacles slightly to left or right (increase size of front, left, and right sensors?)
+# When robot senses a very small gap, it tries to turn (doesn't have logic for if a gap is too small to fit)
+# Logic could use tidying up / refinement
+# Need to add PID - may help with tuning
+# May want to tune values for follow distance and danger zone
+# Add diagonal sensors?
 
 class Walk(Node):
     def __init__(self):
