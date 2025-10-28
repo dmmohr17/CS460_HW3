@@ -37,11 +37,19 @@ class Walk(Node):
         self.start_helper = 0.0
         self.tick = 0
         self.ticks = "temp"
+        self.turningRight = False # memory
+        self.turningLeft = False # memory
 
         self.move_cmd = Twist()
 
     # Sensor callback
     def sensor_callback(self, msg: LaserScan):
+
+        # filter sensor values for invalid readings
+        def filter_vals(range):
+            range = [v for v in range if not math.isinf(v) and not math.isnan(v)]
+            return min(range) if range else float('inf')
+        
         n = len(msg.ranges)
         front = n // 2
         right = n // 6
@@ -49,9 +57,9 @@ class Walk(Node):
 
         # estimates closest obstacles in front, left, and right
         if n > 0:
-            self.front_distance = min(msg.ranges[front - 2 : front + 3])
-            self.left_distance  = min(msg.ranges[left - 2  : left + 3])
-            self.right_distance = min(msg.ranges[right - 2 : right + 3])
+            self.front_distance = filter_vals(msg.ranges[front - 2 : front + 3])
+            self.left_distance  = filter_vals(msg.ranges[left - 2  : left + 3])
+            self.right_distance = filter_vals(msg.ranges[right - 2 : right + 3])
 
     # Timer callback
     def timer_callback(self):
@@ -59,10 +67,14 @@ class Walk(Node):
         self.tick += 1
         self.ticks = str(self.tick)
 
+        if(self.front_distance > self.danger_zone + 0.1):
+            self.turningLeft = False
+            self.turningRight = False
+
         if(self.start == True):
             # at init, need to find a wall
             if(self.wall_found == False):
-                if(self.front_distance == self.left_distance and self.front_distance == self.right_distance):
+                if(abs(self.front_distance - self.left_distance) < 0.05 and abs(self.front_distance - self.right_distance) < 0.05):
                     self.start_helper += 1
                     if(self.start_helper >= 20):
                         # taken too long to find a wall, drive until one is found
@@ -106,23 +118,29 @@ class Walk(Node):
                     # right is closest, turn right to eventually face it
                     twist.angular.z = -0.2
                     twist.linear.x = 0.0
-        elif(self.front_distance < self.danger_zone):
+        # cases after initial wall finding
+        elif(self.front_distance <= self.danger_zone):
             # something is dangerously close to front
-            # work here !
+            if(self.right_distance <= self.follow_distance and self.left_distance > self.follow_distance and self.turningRight == False):
+                # if robot is following a wall and a wall is in front, turn left slowly
+                print("Wall in front and on right, turn left" + self.ticks)
+                twist.angular.z = 0.2
+                twist.linear.x = 0.0
+                self.turningLeft = True
+            else:
+                print("Wall in front, going to turn right")
+                twist.angular.z = -0.2
+                twist.linear.x = 0.0
+                self.turningRight = True
         elif(self.right_distance > self.follow_distance + 0.3):
             # if robot was following a wall and the wall disappears, turn right until found again
             print("Wall lost, turning right and searching" + self.ticks)
             twist.angular.z = -0.5
             twist.linear.x = 0.1
-        elif(self.front_distance < self.danger_zone and self.right_distance < self.follow_distance and self.left_distance > self.follow_distance):
-            # if robot is following a wall and a wall is in front, turn left slowly
-            print("Wall in front and on right, turn left" + self.ticks)
-            twist.angular.z = 0.2
-            twist.linear.x = 0.0
         else:
             # follow the wall - but check for odd cases
-            if(self.right_distance < self.danger_zone):
-                if(self.left_distance < self.danger_zone and self.front_distance > self.follow_distance):
+            if(self.right_distance <= self.danger_zone):
+                if(self.left_distance <= self.danger_zone and self.front_distance > self.follow_distance):
                     # if in a tight corridor but there is space ahead, just go straight
                     print("Tight on both sides, going straight" + self.ticks)
                     twist.angular.z = 0.0
@@ -138,9 +156,9 @@ class Walk(Node):
                 twist.angular.z = -0.1 # rotate right slightly to get parallel with wall
                 twist.linear.x = 0.2
             else:
-            	print("Perfect alignment, going straight" + self.ticks)
-            	twist.angular.z = 0.0
-            	twist.linear.x = 0.2
+                print("Perfect alignment, going straight" + self.ticks)
+                twist.angular.z = 0.0
+                twist.linear.x = 0.2
 
         self.cmd_pub.publish(twist)
 
