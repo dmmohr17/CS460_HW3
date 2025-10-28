@@ -17,6 +17,11 @@ from collections import deque
 # Biggest issue will be corners, will need to solve for that - check architecture slides
 # Will need to figure out how to map PID to linear & angular
 
+# Derek's notes
+# note that we currently have issues with losing the wall on the right,
+# ...I have two different blocks, one that was made to turn right aggressively if the wall is lost,
+# ...and one that is meant to turn only slightly if it becomes just barely misaligned
+
 class Walk(Node):
     def __init__(self):
         super().__init__('Walk')
@@ -30,8 +35,8 @@ class Walk(Node):
         self.right_distance = float('inf')
 
         # may want to tune these values if wall crashing occurs
-        self.danger_zone = 0.5
-        self.follow_distance = 1.0
+        self.danger_zone = 0.4
+        self.follow_distance = 0.65
         self.wall_found = False
         self.start = True
         self.start_helper = 0.0
@@ -127,12 +132,16 @@ class Walk(Node):
                 twist.angular.z = 0.2
                 twist.linear.x = 0.0
                 self.turningLeft = True
-            else:
+            elif(self.turningLeft == False):
                 print("Wall in front, going to turn right")
                 twist.angular.z = -0.2
                 twist.linear.x = 0.0
                 self.turningRight = True
-        elif(self.right_distance > self.follow_distance + 0.3):
+            else:
+                print("self.TurningLeft is still true")
+                twist.angular.z = 0.2
+                twist.linear.x = 0.0
+        elif(self.right_distance > self.follow_distance + 0.2):
             # if robot was following a wall and the wall disappears, turn right until found again
             print("Wall lost, turning right and searching" + self.ticks)
             twist.angular.z = -0.5
@@ -150,11 +159,12 @@ class Walk(Node):
                     print("Right in danger zone, block ahead" + self.ticks)
                     twist.angular.z = 0.2 # turn left
                     twist.linear.x = 0.0
+                    self.turningLeft = True
             elif(self.right_distance > self.follow_distance): 
                 # if the robot is not parallel with the wall, turn closer to it
                 print("Robot misaligned with wall, turn right" + self.ticks)
-                twist.angular.z = -0.1 # rotate right slightly to get parallel with wall
-                twist.linear.x = 0.2
+                twist.angular.z = -0.3 # rotate right slightly to get parallel with wall
+                twist.linear.x = 0.05
             else:
                 print("Perfect alignment, going straight" + self.ticks)
                 twist.angular.z = 0.0
