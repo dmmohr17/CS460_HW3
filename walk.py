@@ -39,7 +39,7 @@ class Walk(Node):
 
         # may want to tune these values if wall crashing occurs
         self.danger_zone = 0.4
-        self.follow_distance = 0.65
+        self.follow_distance = 0.6
         self.wall_found = False
         self.start = True
         self.start_helper = 0.0
@@ -65,9 +65,9 @@ class Walk(Node):
 
         # estimates closest obstacles in front, left, and right
         if n > 0:
-            self.front_distance = filter_vals(msg.ranges[front - 2 : front + 3])
-            self.left_distance  = filter_vals(msg.ranges[left - 2  : left + 3])
-            self.right_distance = filter_vals(msg.ranges[right - 2 : right + 3])
+            self.front_distance = filter_vals(msg.ranges[front - 5 : front + 5])
+            self.left_distance  = filter_vals(msg.ranges[left - 5  : left + 5])
+            self.right_distance = filter_vals(msg.ranges[right - 5 : right + 5])
 
     # Timer callback
     def timer_callback(self):
@@ -105,13 +105,15 @@ class Walk(Node):
                     self.start = False
                     print("Aligned with wall!")
                     twist.angular.z = 0.0
-                    twist.linear.x = 0.2
-                elif(self.front_distance <= self.follow_distance):
+                    twist.linear.x = 0.0
+                elif(self.front_distance <= self.follow_distance and self.turningRight == False):
                     # rotate so right side is within follow distance
+                    self.turningLeft = True
                     twist.angular.z = 0.2
                     twist.linear.x = 0.0
-                elif(self.left_distance <= self.follow_distance):
+                elif(self.left_distance <= self.follow_distance and self.turningRight == False):
                     # rotate left so front will eventually be in follow distance
+                    self.turningLeft = True
                     twist.angular.z = 0.2
                     twist.linear.x = 0.0
                 elif(self.left_distance < self.front_distance and self.left_distance < self.right_distance):
@@ -124,6 +126,7 @@ class Walk(Node):
                     twist.linear.x = 0.2
                 else:
                     # right is closest, turn right to eventually face it
+                    self.turningRight = True
                     twist.angular.z = -0.2
                     twist.linear.x = 0.0
         # cases after initial wall finding
