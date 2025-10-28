@@ -30,8 +30,8 @@ class Walk(Node):
         self.right_distance = float('inf')
 
         # may want to tune these values if wall crashing occurs
-        self.danger_zone = 0.2
-        self.follow_distance = 0.3
+        self.danger_zone = 0.3
+        self.follow_distance = 0.6
         self.wall_found = False
         self.start = True
         self.start_helper = 0.0
@@ -45,8 +45,8 @@ class Walk(Node):
         # estimates closest obstacles in front, left, and right
         if n > 0:
             self.front_distance = min(msg.ranges[n//2 - 5 : n//2 + 5])
-            self.left_distance = min(msg.ranges[:15])
-            self.right_distance = min(msg.ranges[-15:])
+            self.left_distance = min(msg.ranges[-15:])
+            self.right_distance = min(msg.ranges[:15])
 
     # Timer callback
     def timer_callback(self):
@@ -63,11 +63,12 @@ class Walk(Node):
                         twist.linear.x = 0.4
                     else:
                         # no walls found, keep rotating
-                        twist.angular.z = 0.2
+                        twist.angular.z = 0.5
                         twist.linear.x = 0.0
                 else:
                     # wall found, sit stil for now, will move to other block on next loop
                     self.wall_found = True
+                    print("Wall found!")
                     twist.angular.z = 0.0
                     twist.linear.x = 0.0
             else:
@@ -75,6 +76,7 @@ class Walk(Node):
                 if(self.right_distance <= self.follow_distance):
                     # reached wall, now follow it, and mark start phase as over
                     self.start = False
+                    print("Aligned with wall!")
                     twist.angular.z = 0.0
                     twist.linear.x = 0.2
                 elif(self.front_distance <= self.follow_distance):
@@ -103,8 +105,8 @@ class Walk(Node):
             twist.linear.x = 0.1
         elif(self.wall_found == True and self.front_distance < self.follow_distance):
             # if robot is following a wall and a wall is in front, turn left slowly
-            twist.angular.z = 0.1
-            twist.linear.x = 0.1
+            twist.angular.z = 0.2
+            twist.linear.x = 0.0
         else:
             # follow the wall - but check for odd cases
             if(self.right_distance < self.danger_zone):
