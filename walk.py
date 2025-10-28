@@ -17,9 +17,6 @@ from collections import deque
 # Biggest issue will be corners, will need to solve for that - check architecture slides
 # Will need to figure out how to map PID to linear & angular
 
-Laser scan info: angle_min=-2.36, angle_max=2.36
-angle_increment=0.0175, total points=270
-
 class Walk(Node):
     def __init__(self):
         super().__init__('Walk')
@@ -38,24 +35,21 @@ class Walk(Node):
         self.wall_found = False
         self.start = True
         self.start_helper = 0.0
-        self.temp = True
 
         self.move_cmd = Twist()
 
     # Sensor callback
     def sensor_callback(self, msg: LaserScan):
         n = len(msg.ranges)
-        if self.temp:
-            print(f"Laser scan info: angle_min={msg.angle_min:.2f}, "
-                f"angle_max={msg.angle_max:.2f}")
-            print(f"angle_increment={msg.angle_increment:.4f}, "
-                f"total points={len(msg.ranges)}")
+        front = n // 2
+        right = n // 6
+        left = n - right
 
         # estimates closest obstacles in front, left, and right
         if n > 0:
-            self.front_distance = min(msg.ranges[n//2 - 5 : n//2 + 5])
-            self.left_distance = min(msg.ranges[-15:])
-            self.right_distance = min(msg.ranges[:15])
+            self.front_distance = min(msg.ranges[front - 2 : front + 3])
+            self.left_distance  = min(msg.ranges[left - 2  : left + 3])
+            self.right_distance = min(msg.ranges[right - 2 : right + 3])
 
     # Timer callback
     def timer_callback(self):
