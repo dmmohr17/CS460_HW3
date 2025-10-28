@@ -35,12 +35,18 @@ class Walk(Node):
         self.wall_found = False
         self.start = True
         self.start_helper = 0.0
+        self.temp = True
 
         self.move_cmd = Twist()
 
     # Sensor callback
     def sensor_callback(self, msg: LaserScan):
         n = len(msg.ranges)
+        if self.temp:
+            print(f"Laser scan info: angle_min={msg.angle_min:.2f}, "
+                f"angle_max={msg.angle_max:.2f}")
+            print(f"angle_increment={msg.angle_increment:.4f}, "
+                f"total points={len(msg.ranges)}")
 
         # estimates closest obstacles in front, left, and right
         if n > 0:
