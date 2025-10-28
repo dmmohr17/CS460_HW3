@@ -17,6 +17,9 @@ from collections import deque
 # Biggest issue will be corners, will need to solve for that - check architecture slides
 # Will need to figure out how to map PID to linear & angular
 
+Laser scan info: angle_min=-2.36, angle_max=2.36
+angle_increment=0.0175, total points=270
+
 class Walk(Node):
     def __init__(self):
         super().__init__('Walk')
