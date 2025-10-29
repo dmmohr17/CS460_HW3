@@ -200,7 +200,7 @@ class Walk(Node):
             if(self.front_distance > self.follow_distance):
                 twist.linear.x = 0.1
             else:
-        	    twist.linear.x = 0.0
+                twist.linear.x = 0.0
         else: # NEW PID ELSE BLOCK - REPLACED BELOW CODE
             # testing PID solution
             print("PID section")
