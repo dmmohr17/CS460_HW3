@@ -42,11 +42,39 @@ class Walk(Node):
         self.follow_distance = 0.6
         self.wall_found = False
         self.start = True
-        self.start_helper = 0.0
+        self.start_helper = 0.0 # helps check for if robot is turning in a circle for too long at init
+
+        # for print statements
         self.tick = 0
         self.ticks = "temp"
-        self.turningRight = False # memory
-        self.turningLeft = False # memory
+
+        # memory
+        self.turningRight = False
+        self.turningLeft = False
+
+        # linear PID - will want to tune these values
+        self.lin_KP = 1.0
+        self.lin_KI = 0.0
+        self.lin_KD = 0.1
+        self.lin_e = 1
+        self.lin_esum = 1
+        self.lin_eprev = 1
+        self.lin_dedt = 1
+        self.lin_dt = 1
+        self.lin_PID = 1
+        self.lin_u = 1
+
+        # angular pid - will want to tune these values
+        self.ang_KP = 1
+        self.ang_KI = 0.0
+        self.ang_KD = 0.2
+        self.ang_e = 1
+        self.ang_esum = 1
+        self.ang_eprev = 1
+        self.ang_dedt = 1
+        self.ang_dt = 1
+        self.ang_PID = 1
+        self.lin_u = 1
 
         self.move_cmd = Twist()
 
@@ -68,6 +96,25 @@ class Walk(Node):
             self.front_distance = filter_vals(msg.ranges[front - 5 : front + 5])
             self.left_distance  = filter_vals(msg.ranges[left - 5  : left + 5])
             self.right_distance = filter_vals(msg.ranges[right - 5 : right + 5])
+
+        # PID code - imcomplete, and needs to be integrated into timer_callback
+        # also, not sure if the below calculations are correct (they were hastily made) - feel free to fix them
+        lin_e = self.front_distance - self.follow_distance
+        ang_e = self.right_distance - self.follow_distance
+
+        self.lin_esum = self.lin_esum + (lin_e * self.lin_dt)
+        self.lin_dedt = (lin_e - self.lin_eprev) / self.lin_dt
+
+        self.ang_esum = self.ang_esum + (lin_e * self.ang_dt)
+        self.ang_dedt = (ang_e - self.ang_eprev) / self.ang_dt
+
+        self.lin_u = self.lin_KP * lin_e + self.lin_KI * self.lin_esum + self.lin_KD * self.lin_dedt
+        self.ang_u = self.ang_KP * ang_e + self.ang_KI * self.ang_esum + self.ang_KD * self.ang_dedt
+
+        # probably need to add more calculations - Solution incomplete
+
+        self.lin_eprev = lin_e
+        self.ang_eprev = ang_e
 
     # Timer callback
     def timer_callback(self):
@@ -147,6 +194,13 @@ class Walk(Node):
                 print("self.TurningLeft is still true")
                 twist.angular.z = 0.2
                 twist.linear.x = 0.0
+        else: # NEW PID ELSE BLOCK - REPLACED BELOW CODE
+            # testing PID solution
+            print("PID section")
+            twist.angular.z = self.ang_u
+            twist.linear.x = self.lin_x
+        # OLD NON PID CODE BELOW - UNCOMMENT IF THIS DOES NOT WORK
+        """
         elif(self.right_distance > self.follow_distance + 0.2):
             # if robot was following a wall and the wall disappears, turn right until found again
             print("Wall lost, turning right and searching" + self.ticks)
@@ -175,6 +229,7 @@ class Walk(Node):
                 print("Perfect alignment, going straight" + self.ticks)
                 twist.angular.z = 0.0
                 twist.linear.x = 0.2
+        """
 
         self.cmd_pub.publish(twist)
 
