@@ -194,6 +194,13 @@ class Walk(Node):
                 print("self.TurningLeft is still true")
                 twist.angular.z = 0.2
                 twist.linear.x = 0.0
+        elif(self.left_distance <= self.danger_zone and self.right_distance > self.danger_zone):
+            print("Danger on left triggered" + self.ticks)
+            twist.angular.z = -0.2
+            if(self.front_distance > self.follow_distance):
+                twist.linear.x = 0.1
+            else:
+        	    twist.linear.x = 0.0
         else: # NEW PID ELSE BLOCK - REPLACED BELOW CODE
             # testing PID solution
             print("PID section")
@@ -223,8 +230,8 @@ class Walk(Node):
             elif(self.right_distance > self.follow_distance): 
                 # if the robot is not parallel with the wall, turn closer to it
                 print("Robot misaligned with wall, turn right" + self.ticks)
-                twist.angular.z = -0.3 # rotate right slightly to get parallel with wall
-                twist.linear.x = 0.05
+                twist.angular.z = -0.2 # rotate right slightly to get parallel with wall
+                twist.linear.x = 0.1
             else:
                 print("Perfect alignment, going straight" + self.ticks)
                 twist.angular.z = 0.0
