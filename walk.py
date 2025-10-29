@@ -53,28 +53,29 @@ class Walk(Node):
         self.turningLeft = False
 
         # linear PID - will want to tune these values
-        self.lin_KP = 1.0
+        self.lin_KP = 0.5
         self.lin_KI = 0.0
         self.lin_KD = 0.1
         self.lin_e = 1
         self.lin_esum = 1
         self.lin_eprev = 1
         self.lin_dedt = 1
-        self.lin_dt = 1
         self.lin_PID = 1
         self.lin_u = 1
 
         # angular pid - will want to tune these values
-        self.ang_KP = 1
+        self.ang_KP = 1.0
         self.ang_KI = 0.0
         self.ang_KD = 0.2
         self.ang_e = 1
         self.ang_esum = 1
         self.ang_eprev = 1
         self.ang_dedt = 1
-        self.ang_dt = 1
         self.ang_PID = 1
         self.lin_u = 1
+
+        self.dt = 0.01
+        self.dtHelp = 0.0
 
         self.move_cmd = Twist()
 
@@ -96,25 +97,6 @@ class Walk(Node):
             self.front_distance = filter_vals(msg.ranges[front - 5 : front + 5])
             self.left_distance  = filter_vals(msg.ranges[left - 5  : left + 5])
             self.right_distance = filter_vals(msg.ranges[right - 5 : right + 5])
-
-        # PID code - imcomplete, and needs to be integrated into timer_callback
-        # also, not sure if the below calculations are correct (they were hastily made) - feel free to fix them
-        lin_e = self.front_distance - self.follow_distance
-        ang_e = self.right_distance - self.follow_distance
-
-        self.lin_esum = self.lin_esum + (lin_e * self.lin_dt)
-        self.lin_dedt = (lin_e - self.lin_eprev) / self.lin_dt
-
-        self.ang_esum = self.ang_esum + (lin_e * self.ang_dt)
-        self.ang_dedt = (ang_e - self.ang_eprev) / self.ang_dt
-
-        self.lin_u = self.lin_KP * lin_e + self.lin_KI * self.lin_esum + self.lin_KD * self.lin_dedt
-        self.ang_u = self.ang_KP * ang_e + self.ang_KI * self.ang_esum + self.ang_KD * self.ang_dedt
-
-        # probably need to add more calculations - Solution incomplete
-
-        self.lin_eprev = lin_e
-        self.ang_eprev = ang_e
 
     # Timer callback
     def timer_callback(self):
@@ -203,9 +185,36 @@ class Walk(Node):
                 twist.linear.x = 0.0
         else: # NEW PID ELSE BLOCK - REPLACED BELOW CODE
             # testing PID solution
+            # also, not sure if the below calculations are correct (they were hastily made) - feel free to fix them
+            lin_e = self.follow_distance - self.right_distance
+            ang_e = self.left_distance - self.right_distance
+
+            now = time.time()
+            self.dt = now - self.dtHelp
+            self.dtHelp = now
+
+            self.lin_esum = self.lin_esum + (lin_e * self.dt)
+            self.lin_dedt = (lin_e - self.lin_eprev) / self.dt
+
+            self.ang_esum = self.ang_esum + (ang_e * self.dt)
+            self.ang_dedt = (ang_e - self.ang_eprev) / self.dt
+
+            self.lin_esum = max(-5, min(5, self.lin_esum))
+            self.ang_esum = max(-5, min(5, self.ang_esum))
+
+            self.lin_u = self.lin_KP * lin_e + self.lin_KI * self.lin_esum + self.lin_KD * self.lin_dedt
+            self.ang_u = self.ang_KP * ang_e + self.ang_KI * self.ang_esum + self.ang_KD * self.ang_dedt
+
+            # probably need to add more calculations - Solution incomplete
+
+            self.lin_eprev = lin_e
+            self.ang_eprev = ang_e
+
+            max_speed = 3.0
+
             print("PID section")
-            twist.angular.z = self.ang_u
-            twist.linear.x = self.lin_x
+            twist.angular.z = max(-max_speed, min(self.ang_u, max_speed))
+            twist.linear.x = max(0.0, min(self.lin_u, max_speed))
         # OLD NON PID CODE BELOW - UNCOMMENT IF THIS DOES NOT WORK
         """
         elif(self.right_distance > self.follow_distance + 0.2):
