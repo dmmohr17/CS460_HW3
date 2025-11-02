@@ -76,6 +76,9 @@ class Walk(Node):
             # Drifting toward, turn slightly left away from wall
             if(msg.ranges[right-1] > msg.ranges[right+1]):
                 twist.angular.z = 0.1
+            # Anti-crash mechanism - don't hug the wall too close
+            if(self.right_distance < 0.3):
+                twist.angular.z = 0.2
 
         # Front and right - at corner, need to turn left
         if(self.front_distance < 1 and self.right_distance < 1):
