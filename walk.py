@@ -53,7 +53,7 @@ class Walk(Node):
         self.turningLeft = False
 
         # linear PID - will want to tune these values
-        self.lin_KP = 0.5
+        self.lin_KP = 0.6
         self.lin_KI = 0.0
         self.lin_KD = 0.1
         self.lin_e = 1
@@ -64,9 +64,9 @@ class Walk(Node):
         self.lin_u = 1
 
         # angular pid - will want to tune these values
-        self.ang_KP = 1.0
+        self.ang_KP = 0.6
         self.ang_KI = 0.0
-        self.ang_KD = 0.2
+        self.ang_KD = 0.1
         self.ang_e = 1
         self.ang_esum = 1
         self.ang_eprev = 1
@@ -75,7 +75,7 @@ class Walk(Node):
         self.lin_u = 1
 
         self.dt = 0.01
-        self.dtHelp = 0.0
+        self.dtHelp = time.time()
 
         self.move_cmd = Twist()
 
@@ -104,6 +104,7 @@ class Walk(Node):
         self.tick += 1
         self.ticks = str(self.tick)
 
+        # reset turning helper - prevents cyclic turning
         if(self.front_distance > self.danger_zone + 0.1):
             self.turningLeft = False
             self.turningRight = False
@@ -186,11 +187,11 @@ class Walk(Node):
         else: # NEW PID ELSE BLOCK - REPLACED BELOW CODE
             # testing PID solution
             # also, not sure if the below calculations are correct (they were hastily made) - feel free to fix them
-            lin_e = self.follow_distance - self.right_distance
-            ang_e = self.left_distance - self.right_distance
+            lin_e = self.front_distance - self.follow_distance
+            ang_e = self.right_distance - self.follow_distance
 
             now = time.time()
-            self.dt = now - self.dtHelp
+            self.dt = max(1e-3, now - self.dtHelp)
             self.dtHelp = now
 
             self.lin_esum = self.lin_esum + (lin_e * self.dt)
@@ -199,8 +200,8 @@ class Walk(Node):
             self.ang_esum = self.ang_esum + (ang_e * self.dt)
             self.ang_dedt = (ang_e - self.ang_eprev) / self.dt
 
-            self.lin_esum = max(-5, min(5, self.lin_esum))
-            self.ang_esum = max(-5, min(5, self.ang_esum))
+            self.lin_esum = max(-1, min(1, self.lin_esum))
+            self.ang_esum = max(-1, min(1, self.ang_esum))
 
             self.lin_u = self.lin_KP * lin_e + self.lin_KI * self.lin_esum + self.lin_KD * self.lin_dedt
             self.ang_u = self.ang_KP * ang_e + self.ang_KI * self.ang_esum + self.ang_KD * self.ang_dedt
@@ -210,7 +211,7 @@ class Walk(Node):
             self.lin_eprev = lin_e
             self.ang_eprev = ang_e
 
-            max_speed = 3.0
+            max_speed = 1.0
 
             print("PID section")
             twist.angular.z = max(-max_speed, min(self.ang_u, max_speed))
