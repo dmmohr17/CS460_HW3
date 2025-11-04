@@ -12,6 +12,7 @@ class Walk(Node):
         super().__init__('Walk')
         self.cmd_pub = self.create_publisher(Twist, '/cmd_vel', 10)
         self.subscription_scan = self.create_subscription(LaserScan, '/base_scan', self.sensor_callback, 20)
+        # self.subscription_odom = self.create_subscription(Odometry, '/ground_truth', self.listener_callback, 20)
         self.timer = self.create_timer(0.01, self.timer_callback)
 
         # Set baseline numbers
@@ -43,14 +44,10 @@ class Walk(Node):
         front = n // 2
         right = n // 6
         left = n - right
-        first_door = True
     
-        self.front_distance = filter_vals(msg.ranges[front-7:front+7])
-        # print("front: ", self.front_distance)
+        self.front_distance = filter_vals(msg.ranges[front-8:front+8])
         self.right_distance = filter_vals(msg.ranges[right-7:right+7])
-        # print("right: ", self.right_distance)
         self.left_distance = filter_vals(msg.ranges[left-5:left+5])
-        # print("left: ", self.left_distance)
 
         # initialize prev_right and prev_left
         if(self.previous_right == float('inf')):
@@ -61,7 +58,6 @@ class Walk(Node):
         match self.state:
             # base state is following a wall on right-hand side
             case "following-wall":
-                print("following-wall")
                 twist.linear.x = 0.5
                 twist.angular.z = 0.0
 
@@ -81,8 +77,8 @@ class Walk(Node):
                     self.state = "left-turn"
 
                 # coin flip to decide if we explore doorway or not
+                # always explore the first doorway
                 if(self.right_distance - self.previous_right > 1.0):
-                    print("coin flip")
                     if(self.first_door == True):
                         self.first_door = False
                         self.state = "checking-right-doorway"
@@ -94,21 +90,17 @@ class Walk(Node):
 
             # turn right for a little bit, then inch forward into doorway
             case "right-turn":
-                print("right-turn")
                 twist.linear.x = 0.0
                 twist.angular.z = -1.0
                 self.turn_timer += 1
 
                 # if we are aligned with a wall mid-turn, stop turning 
                 if(abs(msg.ranges[right-1] - msg.ranges[right+1]) < 0.005 and self.turn_timer > 5):
-                    print("right-1", msg.ranges[right-1])
-                    print("right+1", msg.ranges[right+1])
                     self.turn_timer = 0
                     self.state = "following-wall"
 
                 # done turning 90 degrees, so inch forward
                 if(self.turn_timer > 19 and self.turn_timer < 24):
-                    # check for wall?
                     twist.linear.x = 0.15
                     twist.angular.z = 0.0
 
@@ -118,7 +110,6 @@ class Walk(Node):
 
             # turn left until the area in front is clear
             case "left-turn":
-                print("left-turn")
                 twist.linear.x = 0.0
                 twist.angular.z = 1.0
 
@@ -127,8 +118,8 @@ class Walk(Node):
                     twist.angular.z = 0.0
                     self.state = "following-wall"
 
+            # check to see if the doorway is wide enough for the robot to fit
             case "checking-right-doorway":
-                print("checking-right-doorway")
                 twist.linear.x = 0.2
                 twist.angular.z = 0.0
                 self.doorway_timer += 1
