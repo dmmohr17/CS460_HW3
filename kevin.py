@@ -84,22 +84,14 @@ class Walk(Node):
                 if(self.front_distance < 0.8):
                     self.state = "left-turn"
 
-                # if a side value increases rapidly, we are passing a doorway
-                # we need to continue driving straight for long enough to sense the width of the doorway
-                # if sensor drops too soon, doorway is too narrow, so continue straight
-                # if sensor stays at increased level, turn right and enter doorway
-                if(self.right_distance - self.previous_right > 1.0 and self.left_distance - self.previous_left > 1.0):
+                # coin flip to decide if we explore doorway or not
+                if(self.right_distance - self.previous_right > 1.0):
+                    print("coin flip")
                     if(random.randint(1,2) == 1):
-                        self.state = "checking-left-doorway"
+                        self.state = "following-wall"
                     else:
                         self.state = "checking-right-doorway"
 
-                if(self.right_distance - self.previous_right > 1.0):
-                    self.state = "checking-right-doorway"
-
-                if(self.left_distance - self.previous_left > 1.0):
-                    self.state = "checking-left-doorway"
-                
 
             # turn right for a little bit, then inch forward into doorway
             case "right-turn":
@@ -130,20 +122,10 @@ class Walk(Node):
                 print("left-turn")
                 twist.linear.x = 0.0
                 twist.angular.z = 1.0
-                self.turn_timer += 1
 
-                # if we are aligned with a wall mid-turn, stop turning 
-                if(abs(msg.ranges[left-1] - msg.ranges[left+1]) < 0.005 and self.turn_timer > 5):
-                    self.turn_timer = 0
-                    self.state = "following-wall"
-                # done turning 90 degrees, so inch forward
-                if(self.turn_timer > 19 and self.turn_timer < 25):
-                    # check for wall?
+                if(self.front_distance > 1.0):
                     twist.linear.x = 0.1
                     twist.angular.z = 0.0
-
-                if(self.turn_timer >= 24):
-                    self.turn_timer = 0
                     self.state = "following-wall"
 
             case "checking-right-doorway":
@@ -162,21 +144,21 @@ class Walk(Node):
                     self.doorway_timer = 0
                     self.state = "following-wall"
 
-            case "checking-left-doorway":
-                print("checking-left-doorway")
-                twist.linear.x = 0.2
-                twist.angular.z = 0.0
-                self.doorway_timer += 1
+            # case "checking-left-doorway":
+            #     print("checking-left-doorway")
+            #     twist.linear.x = 0.2
+            #     twist.angular.z = 0.0
+            #     self.doorway_timer += 1
 
-                # if timer hits a threshhold without sensing a new wall on the right, we've found a valid doorway
-                if(self.doorway_timer > 8):
-                    self.doorway_timer = 0
-                    self.state = "left-turn"
+            #     # if timer hits a threshhold without sensing a new wall on the right, we've found a valid doorway
+            #     if(self.doorway_timer > 8):
+            #         self.doorway_timer = 0
+            #         self.state = "left-turn"
 
-                # if right sensor suddenly drops before hitting threshhold, doorway is too narrow
-                if(self.left_distance - self.previous_left < -0.5 and self.left_distance < 1.0):
-                    self.doorway_timer = 0
-                    self.state = "following-wall"            
+            #     # if right sensor suddenly drops before hitting threshhold, doorway is too narrow
+            #     if(self.left_distance - self.previous_left < -0.5 and self.left_distance < 1.0):
+            #         self.doorway_timer = 0
+            #         self.state = "following-wall"            
 
 
         self.previous_right = self.right_distance
