@@ -5,7 +5,6 @@ from sensor_msgs.msg import LaserScan
 import time
 import math
 from nav_msgs.msg import Odometry
-from collections import deque
 import random
 
 
@@ -24,6 +23,7 @@ class Walk(Node):
         self.previous_right = float('inf')
         self.previous_left = float('inf')
         self.state = "following-wall"
+        self.first_door = True
 
         # Laser scan data
         self.front_distance = float('inf')
@@ -45,7 +45,7 @@ class Walk(Node):
         front = n // 2
         right = n // 6
         left = n - right
-        far_right = 1
+        first_door = True
     
         self.front_distance = filter_vals(msg.ranges[front-7:front+7])
         # print("front: ", self.front_distance)
@@ -53,10 +53,8 @@ class Walk(Node):
         # print("right: ", self.right_distance)
         self.left_distance = filter_vals(msg.ranges[left-5:left+5])
         # print("left: ", self.left_distance)
-        # self.far_right_distance = msg.ranges[far_right]
-        # print("far right: ", self.far_right_distance)
-        # print("")
 
+        # initialize prev_right and prev_left
         if(self.previous_right == float('inf')):
             self.previous_right = self.right_distance
         if(self.previous_left == float('inf')):
@@ -87,7 +85,10 @@ class Walk(Node):
                 # coin flip to decide if we explore doorway or not
                 if(self.right_distance - self.previous_right > 1.0):
                     print("coin flip")
-                    if(random.randint(1,2) == 1):
+                    if(self.first_door == True):
+                        self.first_door = False
+                        self.state = "checking-right-doorway"
+                    elif(random.randint(1,2) == 1):
                         self.state = "following-wall"
                     else:
                         self.state = "checking-right-doorway"
@@ -108,7 +109,7 @@ class Walk(Node):
                     self.state = "following-wall"
 
                 # done turning 90 degrees, so inch forward
-                if(self.turn_timer > 19 and self.turn_timer < 25):
+                if(self.turn_timer > 19 and self.turn_timer < 24):
                     # check for wall?
                     twist.linear.x = 0.15
                     twist.angular.z = 0.0
@@ -117,7 +118,7 @@ class Walk(Node):
                     self.turn_timer = 0
                     self.state = "following-wall"
 
-            # turn left for a little bit, then inch forward into doorway
+            # turn left until the area in front is clear
             case "left-turn":
                 print("left-turn")
                 twist.linear.x = 0.0
@@ -144,22 +145,6 @@ class Walk(Node):
                     self.doorway_timer = 0
                     self.state = "following-wall"
 
-            # case "checking-left-doorway":
-            #     print("checking-left-doorway")
-            #     twist.linear.x = 0.2
-            #     twist.angular.z = 0.0
-            #     self.doorway_timer += 1
-
-            #     # if timer hits a threshhold without sensing a new wall on the right, we've found a valid doorway
-            #     if(self.doorway_timer > 8):
-            #         self.doorway_timer = 0
-            #         self.state = "left-turn"
-
-            #     # if right sensor suddenly drops before hitting threshhold, doorway is too narrow
-            #     if(self.left_distance - self.previous_left < -0.5 and self.left_distance < 1.0):
-            #         self.doorway_timer = 0
-            #         self.state = "following-wall"            
-
 
         self.previous_right = self.right_distance
         self.previous_left = self.left_distance
@@ -169,7 +154,6 @@ class Walk(Node):
     # Timer callback
     def timer_callback(self):
         self.tick += 1
-
 
 
 
