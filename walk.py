@@ -4,7 +4,6 @@ from geometry_msgs.msg import Twist
 from sensor_msgs.msg import LaserScan
 import time
 import math
-from nav_msgs.msg import Odometry
 import random
 
 
@@ -13,7 +12,6 @@ class Walk(Node):
         super().__init__('Walk')
         self.cmd_pub = self.create_publisher(Twist, '/cmd_vel', 10)
         self.subscription_scan = self.create_subscription(LaserScan, '/base_scan', self.sensor_callback, 20)
-        # self.subscription_odom = self.create_subscription(Odometry, '/ground_truth', self.listener_callback, 20)
         self.timer = self.create_timer(0.01, self.timer_callback)
 
         # Set baseline numbers
