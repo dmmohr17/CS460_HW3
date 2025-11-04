@@ -43,6 +43,7 @@ class Walk(Node):
         self.wall_found = False
         self.start = True
         self.start_helper = 0.0 # helps check for if robot is turning in a circle for too long at init
+        self.gap_width_est = 0.0
 
         # for print statements
         self.tick = 0
@@ -66,7 +67,7 @@ class Walk(Node):
         # angular pid - will want to tune these values
         self.ang_KP = 0.6
         self.ang_KI = 0.0
-        self.ang_KD = 0.1
+        self.ang_KD = 0.2
         self.ang_e = 1
         self.ang_esum = 1
         self.ang_eprev = 1
@@ -97,6 +98,14 @@ class Walk(Node):
             self.front_distance = filter_vals(msg.ranges[front - 5 : front + 5])
             self.left_distance  = filter_vals(msg.ranges[left - 5  : left + 5])
             self.right_distance = filter_vals(msg.ranges[right - 5 : right + 5])
+            
+	# estimate angular gap width
+        clear_beams = sum(
+	    1 for d in msg.ranges[front - 5 : front + 5]
+	    if not math.isinf(d) and not math.isnan(d) and d > 1.0
+	)
+        gap_width_angle = clear_beams * msg.angle_increment
+        self.gap_width_est = 2 * math.sin(gap_width_angle / 2) * 1.0
 
     # Timer callback
     def timer_callback(self):
@@ -105,7 +114,7 @@ class Walk(Node):
         self.ticks = str(self.tick)
 
         # reset turning helper - prevents cyclic turning
-        if(self.front_distance > self.danger_zone + 0.1):
+        if(self.front_distance > self.follow_distance + 0.1):
             self.turningLeft = False
             self.turningRight = False
 
@@ -125,6 +134,7 @@ class Walk(Node):
                 else:
                     # wall found, sit stil for now, will move to other block on next loop
                     self.wall_found = True
+                    self.start = False
                     print("Wall found!")
                     twist.angular.z = 0.0
                     twist.linear.x = 0.0
@@ -160,6 +170,12 @@ class Walk(Node):
                     twist.angular.z = -0.2
                     twist.linear.x = 0.0
         # cases after initial wall finding
+        elif(self.turningLeft == True):
+            twist.angular.z = 0.2
+            twist.linear.x = 0.0
+        elif(self.turningRight == True):
+            twist.angular.z = -0.2
+            twist.linear.x = 0.0
         elif(self.front_distance <= self.danger_zone):
             # something is dangerously close to front
             if(self.right_distance <= self.follow_distance and self.left_distance > self.follow_distance and self.turningRight == False):
@@ -177,16 +193,48 @@ class Walk(Node):
                 print("self.TurningLeft is still true")
                 twist.angular.z = 0.2
                 twist.linear.x = 0.0
-        elif(self.left_distance <= self.danger_zone and self.right_distance > self.danger_zone):
+        elif(self.right_distance <= self.danger_zone and self.left_distance <= self.danger_zone and self.front_distance > self.follow_distance):
+            if(self.gap_width_est < 0.6):
+                # if the gap is too small, do not go that way
+                if(self.right_distance > self.left_distance or (self.turningRight == True and self.turningLeft == False)):
+                    print("TOO TIGHT!! Turn right")
+                    twist.angular.z = -0.2
+                    self.turningRight = True
+                else:
+                    print("TOO TIGHT!! Turn left")
+                    self.turningLeft = True
+                    twist.angular.z = 0.2
+                twist.linear.x = -0.1
+            else:
+                # if in a tight corridor but there is space ahead, just go straight
+                print("Tight on both sides, going straight" + self.ticks)
+                twist.angular.z = 0.0
+                twist.linear.x = 0.2
+        #elif ((self.front_distance <= self.follow_distance and self.right_distance <= self.follow_distance and self.left_distance > self.danger_zone) or (self.turningRight == False and self.turningLeft == True)):
+            #print("Boxed in: turn left")
+            #self.turningLeft = True
+            #twist.angular.z = 0.2
+            #twist.linear.x = 0.0
+        elif((self.left_distance <= self.danger_zone and self.right_distance > self.danger_zone) or (self.turningRight == True and self.turningLeft == False)):
             print("Danger on left triggered" + self.ticks)
             twist.angular.z = -0.2
+            self.turningRight = True
             if(self.front_distance > self.follow_distance):
-                twist.linear.x = 0.1
+                twist.linear.x = 0.0
             else:
                 twist.linear.x = 0.0
+        elif(self.right_distance > self.follow_distance * 2 and self.front_distance >= self.right_distance):
+            # go straight
+            print("Open space in front, go straight" + self.ticks)
+            twist.linear.x = 0.3
+            twist.angular.z = 0.0
+        #elif(self.right_distance > self.danger_zone and self.left_distance > self.front_distance and self.left_distance > self.right_distance):
+            # go left
+            #print("Open space in left, go left" + self.ticks)
+            #twist.linear.x = 0.2
+            #twist.angular.z = 0.2
         else: # NEW PID ELSE BLOCK - REPLACED BELOW CODE
             # testing PID solution
-            # also, not sure if the below calculations are correct (they were hastily made) - feel free to fix them
             lin_e = self.front_distance - self.follow_distance
             ang_e = self.right_distance - self.follow_distance
 
@@ -206,16 +254,15 @@ class Walk(Node):
             self.lin_u = self.lin_KP * lin_e + self.lin_KI * self.lin_esum + self.lin_KD * self.lin_dedt
             self.ang_u = self.ang_KP * ang_e + self.ang_KI * self.ang_esum + self.ang_KD * self.ang_dedt
 
-            # probably need to add more calculations - Solution incomplete
-
             self.lin_eprev = lin_e
             self.ang_eprev = ang_e
 
-            max_speed = 1.0
+            max_speed = 0.3
 
             print("PID section")
-            twist.angular.z = max(-max_speed, min(self.ang_u, max_speed))
-            twist.linear.x = max(0.0, min(self.lin_u, max_speed))
+            twist.angular.z = -max(-max_speed, min(self.ang_u, max_speed))
+            #twist.linear.x = max(0.0, min(self.lin_u, max_speed))
+            twist.linear.x = max(0.0, min((self.front_distance - self.danger_zone) * 0.5, 0.3))
         # OLD NON PID CODE BELOW - UNCOMMENT IF THIS DOES NOT WORK
         """
         elif(self.right_distance > self.follow_distance + 0.2):
